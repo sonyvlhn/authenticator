@@ -1,0 +1,29 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User { // "model User" define/cria uma tabela chamada "User" no banco de dados
+  id        String   @id @default(cuid()) // gera código aleatório automaticamente para cada usuário do tipo string para que envolva letras e números
+  name      String
+  email     String   @unique // não pode repetir o email, então ele tem que ser único
+  password  String   // senha do usuário
+  createdAt DateTime @default(now()) // data e hora de criação do usuário - "CreatedAt = Criado em"
+  updatedAt DateTime @updatedAt // data e hora de atualização do usuário - "UpdatedAt = Atualizado em"
+  avatarUrl String? // foto do perfil
+}
+
+// Após a tabela criada, como acima, rode o seguinte comando no terminal: npx prisma migrate dev --name init
+
+// Rode o npx prisma studio no terminal para abrir o banco de dados no navegador em http://localhost:5555, mostrando visual a tabela SQL
