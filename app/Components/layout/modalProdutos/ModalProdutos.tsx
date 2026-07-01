@@ -134,13 +134,13 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
             </label>
             <select
               id="categoria"
-              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
+              className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black cursor-pointer bg-white"
             >
-              <option value="">Selecione uma categoria</option>
-              <option value="camisa">Camisa</option>
-              <option value="calça">Calça</option>
-              <option value="sapato">Sapato</option>
-              <option value="tenis">Tênis</option>
+              <option value="" className="text-slate-400 bg-white">Selecione uma categoria</option>
+              <option value="camisa" className="text-slate-800 bg-white">Camisa</option>
+              <option value="calça" className="text-slate-800 bg-white">Calça</option>
+              <option value="sapato" className="text-slate-800 bg-white">Sapato</option>
+              <option value="tenis" className="text-slate-800 bg-white">Tênis</option>
             </select>
           </div>
           <div className="flex flex-col gap-1 col-span-2">
@@ -179,7 +179,7 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
                 <input
                   type="checkbox"
                   id="novo"
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black cursor-pointer"
                 />
                 <span className="text-gray-400 text-xs">
                   Marque somente se o produto for novo
@@ -196,7 +196,7 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
                   id="desconto"
                   checked={temDesconto}
                   onChange={(e) => setTemDesconto(e.target.checked)}
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black cursor-pointer"
                 />
                 <span className="text-gray-400 text-xs">
                   Marque somente se o produto tiver desconto
@@ -224,11 +224,11 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
         <div className="flex justify-end gap-3 mt-2">
           <button
             onClick={handleClose}
-            className="border border-slate-300 hover:bg-slate-50 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200"
+            className="border border-slate-300 hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer"
           >
             Cancelar
           </button>
-          <button className="bg-slate-900 hover:bg-slate-800 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
+          <button className="bg-slate-900 hover:bg-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer">
             Adicionar
           </button>
         </div>
