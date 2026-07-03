@@ -1,46 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ModalProdutos from "@/app/Components/layout/modalProdutos/ModalProdutos";
+
+type Categoria = {
+  id: string;
+  nome: string;
+};
 
 type Produto = {
   id: string;
   nome: string;
-  categoria: string;
+  categoriaId: string;
+  categoria: Categoria;
+  descricao: string;
   preco: number;
-  imagemUrl: string;
+  imagemUrl: string | null;
 };
-
-const produtosMock: Produto[] = [
-  {
-    id: "1",
-    nome: "Camiseta Básica",
-    categoria: "Camiseta",
-    preco: 49.9,
-    imagemUrl: "",
-  },
-  {
-    id: "2",
-    nome: "Calça Jeans",
-    categoria: "Calça",
-    preco: 129.9,
-    imagemUrl: "",
-  },
-  {
-    id: "3",
-    nome: "Tênis Casual",
-    categoria: "Tênis",
-    preco: 219.9,
-    imagemUrl: "",
-  },
-];
 
 function formatarPreco(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export default function Produtos() {
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null);
+
+  // busca os produtos cadastrados no banco de dados
+  function fetchProdutos() {
+    setIsLoading(true);
+    fetch("/api/produtos")
+      .then((res) => res.json())
+      .then((data) => setProdutos(data))
+      .catch(() => setError("Não foi possível carregar os produtos."))
+      .finally(() => setIsLoading(false));
+  }
+
+  useEffect(() => {
+    fetchProdutos();
+  }, []);
+
+  function handleAdicionar() {
+    setProdutoSelecionado(null);
+    setIsOpen(true);
+  }
+
+  function handleEditar(produto: Produto) {
+    setProdutoSelecionado(produto);
+    setIsOpen(true);
+  }
 
   return (
     <>
@@ -50,12 +61,19 @@ export default function Produtos() {
           Listagem de Produtos
         </h1>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleAdicionar}
           className="bg-slate-800 hover:bg-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer">
           + Adicionar Produto
         </button>
       </div>
 
+      {isLoading ? (
+        <p className="text-slate-500 text-sm">Carregando produtos...</p>
+      ) : error ? (
+        <p className="text-red-600 text-sm">{error}</p>
+      ) : produtos.length === 0 ? (
+        <p className="text-slate-500 text-sm">Nenhum produto cadastrado.</p>
+      ) : (
       <div className="w-full overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-100 border-b border-slate-200">
@@ -74,7 +92,7 @@ export default function Produtos() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {produtosMock.map((produto) => (
+            {produtos.map((produto) => (
               <tr
                 key={produto.id}
                 className="hover:bg-slate-50 transition-colors duration-150"
@@ -108,14 +126,16 @@ export default function Produtos() {
                   {produto.nome}
                 </td>
                 <td className="px-4 py-3 font-medium text-slate-800">
-                  {produto.categoria}
+                  {produto.categoria?.nome}
                 </td>
                 <td className="px-4 py-3 text-slate-600">
                   {formatarPreco(produto.preco)}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-2">
-                    <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors duration-150 cursor-pointer">
+                    <button
+                      onClick={() => handleEditar(produto)}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors duration-150 cursor-pointer">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -145,9 +165,27 @@ export default function Produtos() {
           </tbody>
         </table>
       </div>
+      )}
 
     </main>
-    {isOpen && <ModalProdutos onClose={() => setIsOpen(false)} />}
+    {isOpen && (
+      <ModalProdutos
+        onClose={() => setIsOpen(false)}
+        onSaved={fetchProdutos}
+        produto={
+          produtoSelecionado
+            ? {
+                id: produtoSelecionado.id,
+                nome: produtoSelecionado.nome,
+                categoriaId: produtoSelecionado.categoriaId,
+                descricao: produtoSelecionado.descricao,
+                preco: produtoSelecionado.preco,
+                imagemUrl: produtoSelecionado.imagemUrl,
+              }
+            : null
+        }
+      />
+    )}
     </>
   );
 }

@@ -1,22 +1,58 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function ModalProdutos({ onClose }: { onClose: () => void }) {
+type Categoria = {
+  id: string;
+  nome: string;
+};
+
+export type ProdutoEdicao = {
+  id: string;
+  nome: string;
+  categoriaId: string;
+  descricao: string;
+  preco: number;
+  imagemUrl?: string | null;
+};
+
+export default function ModalProdutos({
+  onClose,
+  onSaved,
+  produto,
+}: {
+  onClose: () => void;
+  onSaved: () => void;
+  produto?: ProdutoEdicao | null;
+}) {
+  const isEditing = !!produto;
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    produto?.imagemUrl ?? null
+  );
   const [temDesconto, setTemDesconto] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
 
+  // busca as categorias cadastradas para popular o select
+  useEffect(() => {
+    fetch("/api/categorias")
+      .then((res) => res.json())
+      .then((data) => setCategorias(data))
+      .catch((e) => console.log(e));
+  }, []);
+
+  // handleClose é responsável por fechar o modal
   const handleClose = () => {
-    setClosing(true);
+    setClosing(true); //inicia a animação de fechamento, setando o estado para true
     setTimeout(() => {
       setSelectedImage(null);
       setPreviewUrl(null);
       setTemDesconto(false);
-      onClose();
-    }, 180);
+      onClose(); //fecha o modal
+    }, 180); //o tempo é o mesmo que a animação de fechamento, então quando o tempo acabar, o modal já terá fechado
   };
 
+  // handleImageChange é responsável por receber a imagem do produto
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -25,6 +61,7 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
     }
   };
 
+  // handleRemoveImage é responsável por remover a imagem do produto
   const handleRemoveImage = () => {
     setSelectedImage(null);
     if (previewUrl) {
@@ -33,11 +70,35 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
     setPreviewUrl(null);
   };
 
+  async function handleSubmitNewProduto(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); // Impede o comportamento padrão de submit do form (reload/navegação), que abortaria o fetch antes da resposta chegar
+    const formData = new FormData(e.currentTarget); // O FormData é uma classe nativa do javascript que permite criar objetos a partir de formulários.
+    try {
+      const url = isEditing ? `/api/produtos/${produto!.id}` : "/api/produtos";
+      const method = isEditing ? "PUT" : "POST";
+      const response = await fetch(url, {
+        method,
+        body: formData,
+      });
+      const data = await response.json();
+      console.log(data);
+      onSaved();
+      handleClose();
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   return (
-    <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${closing ? "animate-backdrop-out" : "animate-backdrop-in"}`}>
-      <div className={`bg-white p-6 rounded-xl w-full max-w-md mx-4 flex flex-col gap-6 shadow-2xl ${closing ? "animate-modal-out" : "animate-modal-in"}`}>
+    <div
+      className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${closing ? "animate-backdrop-out" : "animate-backdrop-in"}`}
+    >
+      <form
+        onSubmit={handleSubmitNewProduto}
+        className={`bg-white p-6 rounded-xl w-full max-w-md mx-4 flex flex-col gap-6 shadow-2xl ${closing ? "animate-modal-out" : "animate-modal-in"}`}
+      >
         <h2 className="text-xl font-semibold text-slate-900 text-center">
-          Crie seu Produto
+          {isEditing ? "Editar Produto" : "Crie seu Produto"}
         </h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2 col-span-2">
@@ -121,7 +182,9 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
             <input
               type="text"
               id="nome"
+              name="nome"
               placeholder="Nome do Produto"
+              defaultValue={produto?.nome}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
             />
           </div>
@@ -134,13 +197,22 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
             </label>
             <select
               id="categoria"
+              name="categoriaId"
+              defaultValue={produto?.categoriaId ?? ""}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black cursor-pointer bg-white"
             >
-              <option value="" className="text-slate-400 bg-white">Selecione uma categoria</option>
-              <option value="camisa" className="text-slate-800 bg-white">Camisa</option>
-              <option value="calça" className="text-slate-800 bg-white">Calça</option>
-              <option value="sapato" className="text-slate-800 bg-white">Sapato</option>
-              <option value="tenis" className="text-slate-800 bg-white">Tênis</option>
+              <option value="" className="text-slate-400 bg-white">
+                Selecione uma categoria
+              </option>
+              {categorias.map((categoria) => (
+                <option
+                  key={categoria.id}
+                  value={categoria.id}
+                  className="text-slate-800 bg-white"
+                >
+                  {categoria.nome}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex flex-col gap-1 col-span-2">
@@ -152,7 +224,9 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
             </label>
             <textarea
               id="descricao"
+              name="descricao"
               placeholder="Descrição"
+              defaultValue={produto?.descricao}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
             />
           </div>
@@ -165,8 +239,11 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
             </label>
             <input
               type="number"
+              step="0.01"
               id="preco"
+              name="preco"
               placeholder="R$ 0,00"
+              defaultValue={produto?.preco}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
             />
           </div>
@@ -223,16 +300,20 @@ export default function ModalProdutos({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex justify-end gap-3 mt-2">
           <button
+            type="button"
             onClick={handleClose}
             className="border border-slate-300 hover:bg-slate-200 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer"
           >
             Cancelar
           </button>
-          <button className="bg-slate-900 hover:bg-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer">
-            Adicionar
+          <button
+            type="submit"
+            className="bg-slate-900 hover:bg-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer"
+          >
+            {isEditing ? "Salvar" : "Adicionar"}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

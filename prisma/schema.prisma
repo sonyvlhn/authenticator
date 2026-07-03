@@ -14,16 +14,53 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User { // "model User" define/cria uma tabela chamada "User" no banco de dados
+model User {
   id        String   @id @default(cuid()) // gera código aleatório automaticamente para cada usuário do tipo string para que envolva letras e números
   name      String
   email     String   @unique // não pode repetir o email, então ele tem que ser único
-  password  String   // senha do usuário
+  password  String // senha do usuário
   createdAt DateTime @default(now()) // data e hora de criação do usuário - "CreatedAt = Criado em"
   updatedAt DateTime @updatedAt // data e hora de atualização do usuário - "UpdatedAt = Atualizado em"
   avatarUrl String? // foto do perfil
 }
 
+// Adicione ao final do arquivo (antes do último model)
+model Categoria {
+  id        String     @id @default(cuid())
+  nome      String
+  descricao String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  produtos  Produtos[] // Adiciona a relação automática com Produtos
+}
+
+// Adicione a relação dentro de Produtos (substitua o campo categoria existente)
+model Produtos {
+  id          String    @id @default(cuid())
+  nome        String
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  categoriaId String
+  descricao   String
+  preco       Float
+  imagemUrl   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 // Após a tabela criada, como acima, rode o seguinte comando no terminal: npx prisma migrate dev --name init
 
 // Rode o npx prisma studio no terminal para abrir o banco de dados no navegador em http://localhost:5555, mostrando visual a tabela SQL
+
+// Para subir novas tabelas (models), é necessário para a execução do prisma studio e do projeto webapp (npm run dev - deve ser paralizado) ambos no terminal (ctrl + c)
+
+// Após isso, no terminal do prisma, executar na ordem:
+// # 1. npx prisma migrate dev --name adicionar_categoria_e_produtos
+
+// # 2. Aplique a migração pendente
+// npx prisma migrate deploy
+
+// # 3. Regenere o client do Prisma
+// npx prisma generate
+
+// # 4. Reinicie o Prisma Studio
+// npx prisma studio */

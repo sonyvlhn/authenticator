@@ -186,8 +186,8 @@ export default function AuthPage() {
           )}
           <div className="transistion-all ease-out duration-200">
             <input
-              type="text"
-              value={name}
+              type="text" //type define o tipo de input
+              value={name} //value recebe o valor do input
               onChange={(e) => setName(e.target.value)}
               placeholder="Nome"
               className="w-full px-3 py-2 border-b-2 border-gray-400 text-gray-900 mb-5 focus:outline-none"
@@ -199,7 +199,7 @@ export default function AuthPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
               className="w-full px-3 py-2 border-b-2 border-gray-400 text-gray-900 mb-5 focus:outline-none"
-              required
+              required //impede que o formulário seja enviado sem o campo preenchido
             />
             <div className="relative w-full mb-4">
               <input

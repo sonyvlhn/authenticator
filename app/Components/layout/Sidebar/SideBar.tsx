@@ -6,6 +6,9 @@ export default function SideBar() {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [isCadastroOpen, setIsCadastroOpen] = useState<boolean>(
+    pathname === "/Produtos" || pathname === "/Categorias"
+  );
 
   // A estilização do botão será aplicada de acordo com a página atual, exemplo: se estiver na página Produtos, o botão Produtos, da sidebar, será estilizado de acordo com a estilização de página ativa e os outros serão estilizados de acordo com a página inativa
   const linkClass = (href: string) =>
@@ -49,12 +52,39 @@ export default function SideBar() {
             {isOpen && <span className="transition-opacity duration-300">Páginas</span>}
           </a>
 
-          <a href="/Produtos" className={linkClass("/Produtos")} title="Produtos">
+          <button
+            onClick={() => (isOpen ? setIsCadastroOpen(prev => !prev) : router.push("/Produtos"))}
+            className={`${linkClass("")} ${(pathname === "/Produtos" || pathname === "/Categorias") ? "bg-slate-800 text-white" : ""} w-full`}
+            title="Cadastro"
+          >
             <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
-            {isOpen && <span className="transition-opacity duration-300">Produtos</span>}
-          </a>
+            {isOpen && (
+              <>
+                <span className="transition-opacity duration-300 flex-1 text-left">Cadastro</span>
+                <svg
+                  className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isCadastroOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </>
+            )}
+          </button>
+
+          {isOpen && isCadastroOpen && (
+            <div className="flex flex-col gap-1 pl-8">
+              <a href="/Produtos" className={linkClass("/Produtos")} title="Produtos">
+                <span className="transition-opacity duration-300">Produtos</span>
+              </a>
+              <a href="/Categorias" className={linkClass("/Categorias")} title="Categorias">
+                <span className="transition-opacity duration-300">Categorias</span>
+              </a>
+            </div>
+          )}
 
           <a href="/Usuarios" className={linkClass("/Usuarios")} title="Usuários">
             <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

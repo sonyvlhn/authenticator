@@ -1,0 +1,42 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+
+
+// Aqui montamos a chamada GET para buscar os produtos
+// Isso vai rodar automaticamente quando entrarmos na rota /api/produtos
+// Onde teremos a lista de todos os produtos
+// O include serve para trazer a categoria junto com o produto
+// O orderBy serve para ordenar os produtos por nome em ordem crescente
+// O catch serve para tratar os erros   
+export async function GET() {
+   try {
+        const produtos = await prisma.produtos.findMany({
+            include: { categoria: true},
+            orderBy: {nome: 'asc'}
+        })
+        return NextResponse.json(produtos)
+   } catch (error) {
+    console.log(error)
+    return NextResponse.json({ error: 'Erro ao buscar produtos' }, { status: 500 })
+   }
+}
+    
+export async function POST(request: Request) {
+   try {
+    const formData = await request.formData() // lendo o FormData (multipart) que vem do front-end
+    const nome = formData.get('nome') as string
+    const categoriaId = formData.get('categoriaId') as string
+    const descricao = formData.get('descricao') as string
+    const preco = parseFloat(formData.get('preco') as string)
+
+    const produto = await prisma.produtos.create({
+        data: { nome, categoriaId, preco, descricao }
+    }) // criando o produto no banco de dados
+
+    return NextResponse.json(produto) // retornando o produto criado
+   } catch (error) {
+    console.log(error)
+    return NextResponse.json({ error: 'Erro ao criar produto' }, { status: 500 })
+   }
+}
