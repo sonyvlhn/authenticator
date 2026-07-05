@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import ModalCategorias from "@/app/Components/layout/modalCategorias/ModalCategorias";
+import ModalConfirm from "@/app/Components/layout/modalConfirm/ModalConfirm";
 
 type Categoria = {
   id: string;
   nome: string;
   descricao: string | null;
+  _count: { produtos: number };
 };
 
 export default function Categorias() {
@@ -14,6 +16,9 @@ export default function Categorias() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [categoriaSelecionadaId, setCategoriaSelecionadaId] = useState<string | null>(null);
+  const [categoriaParaExcluir, setCategoriaParaExcluir] = useState<Categoria | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // busca as categorias cadastradas no banco de dados
   function fetchCategorias() {
@@ -29,6 +34,46 @@ export default function Categorias() {
     fetchCategorias();
   }, []);
 
+  function handleAdicionar() {
+    setCategoriaSelecionadaId(null);
+    setIsOpen(true);
+  }
+
+  function handleEditar(categoria: Categoria) {
+    setCategoriaSelecionadaId(categoria.id);
+    setIsOpen(true);
+  }
+
+  function handleExcluir(categoria: Categoria) {
+    if (categoria._count.produtos > 0) return;
+    setCategoriaParaExcluir(categoria);
+  }
+
+  async function confirmarExclusao() {
+    if (!categoriaParaExcluir) return;
+
+    setIsDeleting(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/categorias/${categoriaParaExcluir.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        setError(data?.error || "Não foi possível excluir a categoria.");
+        return;
+      }
+
+      fetchCategorias();
+      setCategoriaParaExcluir(null);
+    } catch {
+      setError("Erro na conexão.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <>
     <main className="flex flex-1 flex-col p-4 h-[calc(100vh-1rem)] bg-white rounded-xl shadow-sm border border-slate-200 m-2 ml-0 overflow-auto">
@@ -37,7 +82,7 @@ export default function Categorias() {
           Listagem de Categorias
         </h1>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleAdicionar}
           className="bg-slate-800 hover:bg-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer">
           + Adicionar Categoria
         </button>
@@ -77,7 +122,9 @@ export default function Categorias() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors duration-150 cursor-pointer">
+                      <button
+                        onClick={() => handleEditar(categoria)}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors duration-150 cursor-pointer">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
@@ -88,7 +135,15 @@ export default function Categorias() {
                           <path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" />
                         </svg>
                       </button>
-                      <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors duration-150 cursor-pointer">
+                      <button
+                        onClick={() => handleExcluir(categoria)}
+                        disabled={categoria._count.produtos > 0}
+                        title={
+                          categoria._count.produtos > 0
+                            ? "Não é possível excluir uma categoria vinculada a produtos"
+                            : undefined
+                        }
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-50">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
@@ -112,7 +167,19 @@ export default function Categorias() {
     {isOpen && (
       <ModalCategorias
         onClose={() => setIsOpen(false)}
-        onCreated={fetchCategorias}
+        onSaved={fetchCategorias}
+        categoriaId={categoriaSelecionadaId}
+      />
+    )}
+    {categoriaParaExcluir && (
+      <ModalConfirm
+        title="Excluir categoria"
+        message={`Deseja realmente excluir a categoria "${categoriaParaExcluir.nome}"?`}
+        confirmLabel={isDeleting ? "Excluindo..." : "Excluir"}
+        cancelLabel="Cancelar"
+        isConfirming={isDeleting}
+        onConfirm={confirmarExclusao}
+        onCancel={() => setCategoriaParaExcluir(null)}
       />
     )}
     </>

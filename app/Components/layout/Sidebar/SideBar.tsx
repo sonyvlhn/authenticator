@@ -62,7 +62,7 @@ export default function SideBar() {
             </svg>
             {isOpen && (
               <>
-                <span className="transition-opacity duration-300 flex-1 text-left">Cadastro</span>
+                <span className="transition-opacity duration-300 flex-1 text-left">Cadastros</span>
                 <svg
                   className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isCadastroOpen ? "rotate-180" : ""}`}
                   fill="none"

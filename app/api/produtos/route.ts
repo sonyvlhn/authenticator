@@ -21,7 +21,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Erro ao buscar produtos' }, { status: 500 })
    }
 }
-    
+    // A função 
 export async function POST(request: Request) {
    try {
     const formData = await request.formData() // lendo o FormData (multipart) que vem do front-end
