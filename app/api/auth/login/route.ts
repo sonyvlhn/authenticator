@@ -25,9 +25,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
        //Se o usuário não existir ou a senha for inválida, retorna uma mensagem de erro
        if(!usuario || !validarSenha){
             return NextResponse.json(
-                {error: "Email ou senha inválidos."}, 
+                {error: "Email ou senha inválidos."},
                 {status: 401});
        }
+
+       if(!usuario.acessoLiberado){
+            return NextResponse.json(
+                {error: "Seu acesso ainda não foi liberado pelo administrador."},
+                {status: 403});
+       }
+
        const token = await criarToken({
         id: usuario.id,
         email: usuario.email,

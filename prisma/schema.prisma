@@ -14,14 +14,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TipoAcesso {
+  VISUALIZADOR
+  EDITOR
+  ADMIN
+}
+
 model User {
-  id        String   @id @default(cuid()) // gera código aleatório automaticamente para cada usuário do tipo string para que envolva letras e números
-  name      String
-  email     String   @unique // não pode repetir o email, então ele tem que ser único
-  password  String // senha do usuário
-  createdAt DateTime @default(now()) // data e hora de criação do usuário - "CreatedAt = Criado em"
-  updatedAt DateTime @updatedAt // data e hora de atualização do usuário - "UpdatedAt = Atualizado em"
-  avatarUrl String? // foto do perfil
+  id             String     @id @default(cuid()) // gera código aleatório automaticamente para cada usuário do tipo string para que envolva letras e números
+  name           String
+  email          String     @unique // não pode repetir o email, então ele tem que ser único
+  password       String // senha do usuário
+  acessoLiberado Boolean    @default(false) // indica se o admin liberou o acesso do usuário à plataforma
+  tipoAcesso     TipoAcesso @default(VISUALIZADOR) // categoria/nível de permissão do usuário na plataforma
+  createdAt      DateTime   @default(now()) // data e hora de criação do usuário - "CreatedAt = Criado em"
+  updatedAt      DateTime   @updatedAt // data e hora de atualização do usuário - "UpdatedAt = Atualizado em"
+  avatarUrl      String? // foto do perfil
 }
 
 // Adicione ao final do arquivo (antes do último model)
