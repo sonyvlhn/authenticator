@@ -31,8 +31,13 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+# Todos os arquivos .env ficam fora do git (contêm senhas e chaves).
+# Exceção: .env.example, que só tem valores de exemplo e serve de modelo para configurar o projeto.
 .env*
 !.env.example
+
+# graphify (grafo de conhecimento gerado localmente, não faz parte do projeto)
+graphify-out/
 
 # vercel
 .vercel
