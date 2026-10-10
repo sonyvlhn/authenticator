@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ModalProdutos from "@/app/Components/layout/modalProdutos/ModalProdutos";
+import { calcularPrecoComDesconto, temDesconto } from "@/lib/desconto";
 
 type Categoria = {
   id: string;
@@ -15,6 +16,7 @@ type Produto = {
   categoria: Categoria;
   descricao: string;
   preco: number;
+  descontoPorcentagem: number;
   imagemUrl: string | null;
 };
 
@@ -129,7 +131,22 @@ export default function Produtos() {
                   {produto.categoria?.nome}
                 </td>
                 <td className="px-4 py-3 text-slate-600">
-                  {formatarPreco(produto.preco)}
+                  {temDesconto(produto.descontoPorcentagem) ? (
+                    <div className="flex flex-col">
+                      {/* Preço original riscado e, abaixo, o preço com desconto */}
+                      <span className="text-xs text-slate-400 line-through">
+                        {formatarPreco(produto.preco)}
+                      </span>
+                      <span className="flex items-center gap-2 font-semibold text-emerald-700">
+                        {formatarPreco(calcularPrecoComDesconto(produto.preco, produto.descontoPorcentagem))}
+                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                          -{produto.descontoPorcentagem.toLocaleString("pt-BR")}%
+                        </span>
+                      </span>
+                    </div>
+                  ) : (
+                    formatarPreco(produto.preco)
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -180,6 +197,7 @@ export default function Produtos() {
                 categoriaId: produtoSelecionado.categoriaId,
                 descricao: produtoSelecionado.descricao,
                 preco: produtoSelecionado.preco,
+                descontoPorcentagem: produtoSelecionado.descontoPorcentagem,
                 imagemUrl: produtoSelecionado.imagemUrl,
               }
             : null

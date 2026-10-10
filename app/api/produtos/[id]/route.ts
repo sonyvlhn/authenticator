@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enviarImagem, removerImagem, lerArquivo, ErroUpload } from "@/lib/storage";
+import { porcentagemValida } from "@/lib/desconto";
 
 async function updateProduto(request: Request, id: string) {
   const formData = await request.formData();
@@ -8,6 +9,10 @@ async function updateProduto(request: Request, id: string) {
   const categoriaId = formData.get("categoriaId") as string;
   const descricao = formData.get("descricao") as string;
   const preco = parseFloat(formData.get("preco") as string);
+  const descontoPorcentagem = parseFloat((formData.get("descontoPorcentagem") as string) || "0"); // sem desconto informado = 0%
+  if (!porcentagemValida(descontoPorcentagem)) {
+    return NextResponse.json({ error: "O desconto deve ser uma porcentagem entre 0 e 100" }, { status: 400 });
+  }
   const imagem = lerArquivo(formData, "imageFile");
   const removerImagemAtual = formData.get("removerImagem") === "true";
 
@@ -26,7 +31,7 @@ async function updateProduto(request: Request, id: string) {
 
   const produto = await prisma.produtos.update({
     where: { id },
-    data: { nome, categoriaId, descricao, preco, imagemUrl },
+    data: { nome, categoriaId, descricao, preco, descontoPorcentagem, imagemUrl },
     include: { categoria: true },
   });
 

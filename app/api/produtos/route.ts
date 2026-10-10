@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enviarImagem, lerArquivo, ErroUpload } from "@/lib/storage";
+import { porcentagemValida } from "@/lib/desconto";
 
 
 
@@ -30,13 +31,17 @@ export async function POST(request: Request) {
     const categoriaId = formData.get('categoriaId') as string
     const descricao = formData.get('descricao') as string
     const preco = parseFloat(formData.get('preco') as string)
+    const descontoPorcentagem = parseFloat((formData.get('descontoPorcentagem') as string) || '0') // sem desconto informado = 0%
+    if (!porcentagemValida(descontoPorcentagem)) {
+        return NextResponse.json({ error: 'O desconto deve ser uma porcentagem entre 0 e 100' }, { status: 400 })
+    }
     const imagem = lerArquivo(formData, 'imageFile')
 
     // envia a imagem para o container de storage e guarda a URL pública gerada
     const imagemUrl = imagem ? await enviarImagem(imagem, 'produtos') : null
 
     const produto = await prisma.produtos.create({
-        data: { nome, categoriaId, preco, descricao, imagemUrl }
+        data: { nome, categoriaId, preco, descontoPorcentagem, descricao, imagemUrl }
     }) // criando o produto no banco de dados
 
     return NextResponse.json(produto) // retornando o produto criado

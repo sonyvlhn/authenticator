@@ -12,6 +12,7 @@ export type ProdutoEdicao = {
   categoriaId: string;
   descricao: string;
   preco: number;
+  descontoPorcentagem?: number;
   imagemUrl?: string | null;
 };
 
@@ -29,7 +30,9 @@ export default function ModalProdutos({
   const [previewUrl, setPreviewUrl] = useState<string | null>(
     produto?.imagemUrl ?? null
   );
-  const [temDesconto, setTemDesconto] = useState(false);
+  const [temDesconto, setTemDesconto] = useState(
+    (produto?.descontoPorcentagem ?? 0) > 0 // ao editar, já abre marcado se o produto tiver desconto
+  );
   const [closing, setClosing] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [error, setError] = useState("");
@@ -313,6 +316,12 @@ export default function ModalProdutos({
                 <input
                   type="number"
                   id="porcentagem"
+                  name="descontoPorcentagem"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  required
+                  defaultValue={produto?.descontoPorcentagem || undefined}
                   placeholder="%"
                   className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
                 />
