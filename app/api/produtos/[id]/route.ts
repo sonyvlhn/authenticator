@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { enviarImagem, removerImagem, lerArquivo, ErroUpload } from "@/lib/storage";
-import { porcentagemValida } from "@/lib/desconto";
+import { validarProduto } from "@/lib/validations";
 
 async function updateProduto(request: Request, id: string) {
   const formData = await request.formData();
-  const nome = formData.get("nome") as string;
-  const categoriaId = formData.get("categoriaId") as string;
-  const descricao = formData.get("descricao") as string;
-  const preco = parseFloat(formData.get("preco") as string);
-  const descontoPorcentagem = parseFloat((formData.get("descontoPorcentagem") as string) || "0"); // sem desconto informado = 0%
-  if (!porcentagemValida(descontoPorcentagem)) {
-    return NextResponse.json({ error: "O desconto deve ser uma porcentagem entre 0 e 100" }, { status: 400 });
+
+  // valida os campos antes de enviar a imagem ou gravar no banco
+  const resultado = validarProduto(formData);
+  if (!resultado.success) {
+    return NextResponse.json({ error: resultado.error.issues[0].message }, { status: 400 });
   }
+  const { nome, categoriaId, descricao, preco, descontoPorcentagem } = resultado.data;
+
+  const categoria = await prisma.categoria.findUnique({ where: { id: categoriaId } });
+  if (!categoria) {
+    return NextResponse.json({ error: "Categoria não encontrada" }, { status: 400 });
+  }
+
   const imagem = lerArquivo(formData, "imageFile");
   const removerImagemAtual = formData.get("removerImagem") === "true";
 
@@ -29,11 +34,17 @@ async function updateProduto(request: Request, id: string) {
     imagemUrl = null;
   }
 
-  const produto = await prisma.produtos.update({
-    where: { id },
-    data: { nome, categoriaId, descricao, preco, descontoPorcentagem, imagemUrl },
-    include: { categoria: true },
-  });
+  let produto;
+  try {
+    produto = await prisma.produtos.update({
+      where: { id },
+      data: { nome, categoriaId, descricao, preco, descontoPorcentagem, imagemUrl },
+      include: { categoria: true },
+    });
+  } catch (error) {
+    if (imagem) await removerImagem(imagemUrl); // se o banco falhar, apaga a imagem nova que acabou de ser enviada
+    throw error;
+  }
 
   // Apaga do storage a imagem antiga que foi substituída ou removida
   if (produtoAtual.imagemUrl !== imagemUrl) {

@@ -208,6 +208,7 @@ export default function ModalProdutos({
               type="text"
               id="nome"
               name="nome"
+              required
               placeholder="Nome do Produto"
               defaultValue={produto?.nome}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
@@ -223,6 +224,7 @@ export default function ModalProdutos({
             <select
               id="categoria"
               name="categoriaId"
+              required
               defaultValue={produto?.categoriaId ?? ""}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black cursor-pointer bg-white"
             >
@@ -267,6 +269,8 @@ export default function ModalProdutos({
               step="0.01"
               id="preco"
               name="preco"
+              min={0.01}
+              required
               placeholder="R$ 0,00"
               defaultValue={produto?.preco}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
