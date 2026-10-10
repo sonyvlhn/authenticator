@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { obterAdminLogado } from "@/lib/sessao";
 
 export async function GET() {
+  if (!(await obterAdminLogado())) {
+    return NextResponse.json({ error: "Acesso restrito a administradores" }, { status: 403 });
+  }
+
   try {
     const usuarios = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },

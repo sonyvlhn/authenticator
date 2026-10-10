@@ -39,9 +39,12 @@ export default function Usuarios() {
   function fetchUsuarios() {
     setIsLoading(true);
     fetch("/api/usuarios")
-      .then((res) => res.json())
-      .then((data) => setUsuarios(data))
-      .catch(() => setError("Não foi possível carregar os usuários."))
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error);
+        setUsuarios(data);
+      })
+      .catch((err: Error) => setError(err.message || "Não foi possível carregar os usuários."))
       .finally(() => setIsLoading(false));
   }
 

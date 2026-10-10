@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import React from 'react'
 
 export default function Register() {
-    const router = useRouter();
     const [name, setName] = useState<string>("");
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
@@ -16,24 +14,26 @@ export default function Register() {
 
     async function handleSubmit(): Promise<void>{
         setError("");
+        setSuccess("");
         setLoading(true);
 
         try{
-            const res = await fetch ("api/auth/register", {
+            const res = await fetch ("/api/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json", // Define o tipo de conteúdo que será enviado para o servidor. Converte as informações em JSON
                 },
                 body: JSON.stringify({name, email, password})
             });
-            const data: { error ?: string} = await res.json();
+            const data: { error ?: string; message?: string } = await res.json();
 
             if(!res.ok){
                 setError(data.error || "Algo deu errado");
                 return;
             }
-            router.push("/");
-            setSuccess("Cadastro realizado com sucesso!");
+            // Não redireciona para dentro do sistema: o acesso depende da liberação de um admin
+            setPassword("");
+            setSuccess(data.message || "Cadastro realizado! Aguarde a liberação do seu acesso por um administrador.");
         } catch {
             setError("Não foi possível conectar. Tente novamente.");
         } finally {
@@ -45,6 +45,11 @@ export default function Register() {
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="w-full max-w-sm bg-gray-200 rounded-xl inset-shadow-sm p-8">
             <h1 className="flex justify-center text-gray-900 text-2xl font-bold mb-1">Criar Conta</h1>
             <p className="text-slate-400 text-xs mb-6 text-center">Preencha seus dados para começar</p>
+            {success &&(
+                <div className="mb-4 rounded-lg bg-green-500/10 border border-green-500/30 px-3 py-2 text-green-700 text-sm">
+                    {success}
+                </div>
+            )}
             {error &&(
                 <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-red-400 text-sm">
                     {error}

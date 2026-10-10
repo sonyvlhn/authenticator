@@ -38,14 +38,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         data:{
             name, 
             email, 
-            password: hash
+            password: hash,
+            acessoLiberado: false // todo novo cadastro fica bloqueado até um ADMIN liberar o acesso
         }
     })
     
 
     // Retorna uma resposta de sucesso com os dados do novo usuário
     return NextResponse.json({
-        message: "Conta criada com sucesso!",
+        message: "Conta criada com sucesso! Aguarde a liberação do seu acesso por um administrador.",
         user: {
             id: novoUser.id,
             name: novoUser.name,

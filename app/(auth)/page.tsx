@@ -10,6 +10,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState<string>("");
   /* Funções de Autenticação */
@@ -17,6 +18,7 @@ export default function AuthPage() {
     e.preventDefault(); //impede que a página seja recarregada ao enviar o formulário
     setIsLoading(true); //inicia o loading
     setError(""); //limpa o erro
+    setSuccess("");
 
     // Conexão com o banco de dados para login
     try {
@@ -45,6 +47,7 @@ export default function AuthPage() {
   async function handleSubmitRegister(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setIsLoading(true);
     // Conexão com o banco de dados para registro
     try {
@@ -55,13 +58,16 @@ export default function AuthPage() {
         },
         body: JSON.stringify({ name, email, password }),
       });
-      const data: { error?: string } = await res.json();
+      const data: { error?: string; message?: string } = await res.json();
 
       if (!res.ok) {
         setError(data.error || "Algo deu errado");
         return;
       }
-      router.push("/Produtos");
+      // O novo usuário não entra no sistema: volta para o login e aguarda a liberação do admin
+      setPassword("");
+      setShowLogin(true);
+      setSuccess(data.message || "Conta criada! Aguarde a liberação do seu acesso por um administrador.");
     } catch {
       setError("Não foi possível conectar. Tente novamente.");
     } finally {
@@ -85,6 +91,11 @@ export default function AuthPage() {
           <p className="text-slate-500 text-sm mb-5 transistion-all ease-out duration-200">
             Use seus dados para acessar sua conta.
           </p>
+          {success && showLogin && (
+            <div className="animate-slide-auth mb-4 rounded-lg bg-green-500/10 border border-green-500/30 px-3 py-2 text-green-700 text-sm">
+              {success}
+            </div>
+          )}
           {error && showLogin && (
             <div className={`grid transition-all duration-300 ease-out ${error && showLogin ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} >
               <div className="overflow-hidden">
@@ -280,6 +291,7 @@ export default function AuthPage() {
                 onClick={() => {
                   setShowLogin(true);
                   setError("");
+                  setSuccess("");
                 }}
                 className="px-8 py-2.5 mt-10 bg-white text-slate-900 rounded-full font-semibold shadow-lg hover:bg-slate-100 transition-all duration-300 transform hover:-translate-y-0.5 tracking-widest"
               >
@@ -296,6 +308,7 @@ export default function AuthPage() {
                 onClick={() => {
                   setShowLogin(false);
                   setError("");
+                  setSuccess("");
                 }}
                 className="px-8 py-2.5 mt-10 bg-white text-slate-900 rounded-full font-semibold shadow-lg hover:bg-slate-100 transition-all duration-300 transform hover:-translate-y-0.5 tracking-widest"
               >
