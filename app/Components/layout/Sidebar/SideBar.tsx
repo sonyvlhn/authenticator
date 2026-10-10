@@ -36,7 +36,7 @@ export default function SideBar() {
     <div className={`text-white bg-linear-to-br from-gray-900 to-gray-700 h-[calc(100vh-1rem)] border border-slate-700 rounded-xl p-4 m-2 shrink-0 flex flex-col shadow-lg transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`}>
       <div>
         <div className={`flex items-center ${isOpen ? 'justify-between' : 'justify-center'} transition-all duration-300`}>
-          {isOpen && <h2 className="text-xl font-bold tracking-wide truncate">Administração</h2>}
+          {isOpen && <h2 className="text-xl font-bold tracking-wide truncate">Painel Gestor</h2>}
           <button onClick={toggle} className="flex flex-col gap-1 p-1 hover:bg-slate-800/50 rounded-lg transition-colors focus:outline-none" aria-label="Toggle Menu">
             <span className={`h-0.5 w-5 bg-white transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
             <span className={`h-0.5 w-5 bg-white transition-all duration-300 ${isOpen ? 'opacity-0' : ''}`}></span>
