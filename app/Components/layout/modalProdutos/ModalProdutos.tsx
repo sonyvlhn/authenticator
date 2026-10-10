@@ -35,6 +35,9 @@ export default function ModalProdutos({
   );
   const [closing, setClosing] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  // Categoria controlada por estado: com defaultValue, o valor salvo se perdia porque as opções
+  // só chegam da API depois da primeira renderização do select
+  const [categoriaId, setCategoriaId] = useState(produto?.categoriaId ?? "");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -225,7 +228,8 @@ export default function ModalProdutos({
               id="categoria"
               name="categoriaId"
               required
-              defaultValue={produto?.categoriaId ?? ""}
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black cursor-pointer bg-white"
             >
               <option value="" className="text-slate-400 bg-white">
