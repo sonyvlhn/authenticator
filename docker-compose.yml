@@ -31,8 +31,64 @@ services:
     networks:
       - rededb
 
+  # Armazenamento de imagens compatível com S3 (SeaweedFS)
+  # API S3 em http://localhost:8333 - as imagens ficam públicas em http://localhost:8333/<bucket>/<arquivo>
+  storage:
+    image: chrislusf/seaweedfs:3.97
+    container_name: storage
+    restart: always
+    environment:
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:?Defina STORAGE_ACCESS_KEY no .env}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:?Defina STORAGE_SECRET_KEY no .env}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:?Defina STORAGE_BUCKET no .env}
+    entrypoint: ["/bin/sh", "-c"]
+    # Gera a configuração de acesso a partir das variáveis de ambiente (nenhuma chave fica salva no repositório):
+    # - identidade "app": usada pelo backend para enviar/remover imagens
+    # - identidade "anonymous": qualquer pessoa pode apenas ler as imagens do bucket (sem listar ou enviar)
+    command:
+      - |
+        cat > /etc/seaweedfs/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "app",
+              "credentials": [{ "accessKey": "$${STORAGE_ACCESS_KEY}", "secretKey": "$${STORAGE_SECRET_KEY}" }],
+              "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+            },
+            { "name": "anonymous", "actions": ["Read:$${STORAGE_BUCKET}"] }
+          ]
+        }
+        EOF
+        exec weed server -dir=/data -ip=storage -ip.bind=0.0.0.0 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - "8333:8333"
+    volumes:
+      - storagedata:/data
+    networks:
+      - rededb
+
+  # Container de inicialização: cria o bucket assim que o storage estiver pronto e depois encerra
+  storage-init:
+    image: chrislusf/seaweedfs:3.97
+    container_name: storage-init
+    depends_on:
+      - storage
+    environment:
+      STORAGE_BUCKET: ${STORAGE_BUCKET:?Defina STORAGE_BUCKET no .env}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until echo "s3.bucket.list" | weed shell -master=storage:9333 > /dev/null 2>&1; do
+          echo "Aguardando o storage..."; sleep 2
+        done
+        echo "s3.bucket.create -name $${STORAGE_BUCKET}" | weed shell -master=storage:9333 || true
+        echo "Bucket '$${STORAGE_BUCKET}' pronto."
+    networks:
+      - rededb
+
 volumes:
   pgdata:
+  storagedata:
 
 networks:
   rededb:

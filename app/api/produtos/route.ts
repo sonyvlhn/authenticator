@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { enviarImagem, lerArquivo, ErroUpload } from "@/lib/storage";
 
 
 
@@ -29,13 +30,20 @@ export async function POST(request: Request) {
     const categoriaId = formData.get('categoriaId') as string
     const descricao = formData.get('descricao') as string
     const preco = parseFloat(formData.get('preco') as string)
+    const imagem = lerArquivo(formData, 'imageFile')
+
+    // envia a imagem para o container de storage e guarda a URL pública gerada
+    const imagemUrl = imagem ? await enviarImagem(imagem, 'produtos') : null
 
     const produto = await prisma.produtos.create({
-        data: { nome, categoriaId, preco, descricao }
+        data: { nome, categoriaId, preco, descricao, imagemUrl }
     }) // criando o produto no banco de dados
 
     return NextResponse.json(produto) // retornando o produto criado
    } catch (error) {
+    if (error instanceof ErroUpload) {
+        return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     console.log(error)
     return NextResponse.json({ error: 'Erro ao criar produto' }, { status: 500 })
    }

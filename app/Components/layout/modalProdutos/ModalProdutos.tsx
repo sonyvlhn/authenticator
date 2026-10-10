@@ -32,6 +32,8 @@ export default function ModalProdutos({
   const [temDesconto, setTemDesconto] = useState(false);
   const [closing, setClosing] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // busca as categorias cadastradas para popular o select
   useEffect(() => {
@@ -73,6 +75,15 @@ export default function ModalProdutos({
   async function handleSubmitNewProduto(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); // Impede o comportamento padrão de submit do form (reload/navegação), que abortaria o fetch antes da resposta chegar
     const formData = new FormData(e.currentTarget); // O FormData é uma classe nativa do javascript que permite criar objetos a partir de formulários.
+    // O input de arquivo some da tela quando o preview aparece, então a imagem escolhida é adicionada manualmente
+    formData.delete("imageFile");
+    if (selectedImage) {
+      formData.set("imageFile", selectedImage);
+    } else if (isEditing && !previewUrl) {
+      formData.set("removerImagem", "true"); // o usuário removeu a imagem que o produto já tinha
+    }
+    setError("");
+    setIsSaving(true);
     try {
       const url = isEditing ? `/api/produtos/${produto!.id}` : "/api/produtos";
       const method = isEditing ? "PUT" : "POST";
@@ -81,11 +92,17 @@ export default function ModalProdutos({
         body: formData,
       });
       const data = await response.json();
-      console.log(data);
+      if (!response.ok) {
+        setError(data?.error || "Não foi possível salvar o produto.");
+        return;
+      }
       onSaved();
       handleClose();
     } catch (e) {
       console.log(e);
+      setError("Erro na conexão. Tente novamente.");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -100,6 +117,11 @@ export default function ModalProdutos({
         <h2 className="text-xl font-semibold text-slate-900 text-center">
           {isEditing ? "Editar Produto" : "Crie seu Produto"}
         </h2>
+        {error && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-red-500 text-sm">
+            {error}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2 col-span-2">
             <span className="text-sm font-medium text-slate-700">
@@ -165,7 +187,7 @@ export default function ModalProdutos({
                   type="file"
                   id="imageInput"
                   name="imageFile"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={handleImageChange}
                   className="hidden"
                 />
@@ -308,9 +330,10 @@ export default function ModalProdutos({
           </button>
           <button
             type="submit"
-            className="bg-slate-900 hover:bg-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer"
+            disabled={isSaving}
+            className="disabled:opacity-50 disabled:cursor-not-allowed bg-slate-900 hover:bg-slate-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer"
           >
-            {isEditing ? "Salvar" : "Adicionar"}
+            {isSaving ? "Salvando..." : isEditing ? "Salvar" : "Adicionar"}
           </button>
         </div>
       </form>
