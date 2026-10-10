@@ -1,15 +1,19 @@
 # docker-compose.yml
+# As credenciais vêm do arquivo .env (o Docker Compose lê o .env da raiz automaticamente).
+# A sintaxe ${VAR:?mensagem} impede que os containers subam se a variável não estiver definida.
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:18.4
     container_name: POSTGRES_DB
     restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${DB_USER:?Defina DB_USER no .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
+      POSTGRES_DB: ${DB_NAME:?Defina DB_NAME no .env}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql # mantém os dados do banco mesmo se o container for recriado
     networks:
       - rededb
 
@@ -18,8 +22,8 @@ services:
     container_name: pgadmin
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?Defina PGADMIN_EMAIL no .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Defina PGADMIN_PASSWORD no .env}
     ports:
       - "8080:80"
     depends_on:
