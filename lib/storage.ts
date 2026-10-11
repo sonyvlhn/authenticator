@@ -75,3 +75,8 @@ export function lerArquivo(formData: FormData, campo: string): File | null {
     const arquivo = formData.get(campo);
     return arquivo instanceof File && arquivo.size > 0 ? arquivo : null;
 }
+
+// Lê todos os arquivos de imagem enviados em um mesmo campo do FormData (ex.: várias fotos do produto)
+export function lerArquivos(formData: FormData, campo: string): File[] {
+    return formData.getAll(campo).filter((arquivo): arquivo is File => arquivo instanceof File && arquivo.size > 0);
+}

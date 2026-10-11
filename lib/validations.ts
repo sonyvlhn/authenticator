@@ -42,3 +42,6 @@ export function validarProduto(formData: FormData) {
     descontoPorcentagem: formData.get('descontoPorcentagem'),
   });
 }
+
+// Quantidade máxima de fotos por produto (usada no modal e nas rotas da API)
+export const MAX_FOTOS_PRODUTO = 5;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { enviarImagem, removerImagem, lerArquivo, ErroUpload } from "@/lib/storage";
+import { removerImagem, ErroUpload } from "@/lib/storage";
+import { prepararGaleria, salvarGaleria } from "@/lib/galeriaProduto";
 import { validarProduto } from "@/lib/validations";
 
 async function updateProduto(request: Request, id: string) {
@@ -18,38 +19,32 @@ async function updateProduto(request: Request, id: string) {
     return NextResponse.json({ error: "Categoria não encontrada" }, { status: 400 });
   }
 
-  const imagem = lerArquivo(formData, "imageFile");
-  const removerImagemAtual = formData.get("removerImagem") === "true";
-
-  const produtoAtual = await prisma.produtos.findUnique({ where: { id } });
+  const produtoAtual = await prisma.produtos.findUnique({ where: { id }, include: { imagens: true } });
   if (!produtoAtual) {
     return NextResponse.json({ error: "Produto não encontrado" }, { status: 404 });
   }
 
-  // Nova imagem: envia para o storage. Sem imagem e com "removerImagem": limpa a URL. Caso contrário, mantém a atual.
-  let imagemUrl = produtoAtual.imagemUrl;
-  if (imagem) {
-    imagemUrl = await enviarImagem(imagem, "produtos");
-  } else if (removerImagemAtual) {
-    imagemUrl = null;
-  }
+  // Envia as fotos novas, separa as que foram mantidas/removidas e define a foto de destaque
+  const galeria = await prepararGaleria(formData, produtoAtual.imagens);
 
   let produto;
   try {
-    produto = await prisma.produtos.update({
-      where: { id },
-      data: { nome, categoriaId, descricao, preco, descontoPorcentagem, imagemUrl },
-      include: { categoria: true },
-    });
+    const resultados = await prisma.$transaction([
+      ...salvarGaleria(id, galeria),
+      prisma.produtos.update({
+        where: { id },
+        data: { nome, categoriaId, descricao, preco, descontoPorcentagem, imagemUrl: galeria.imagemUrl },
+        include: { categoria: true, imagens: { orderBy: { ordem: "asc" } } },
+      }),
+    ]);
+    produto = resultados[resultados.length - 1];
   } catch (error) {
-    if (imagem) await removerImagem(imagemUrl); // se o banco falhar, apaga a imagem nova que acabou de ser enviada
+    await Promise.all(galeria.enviadas.map((url) => removerImagem(url))); // se o banco falhar, apaga as fotos novas que acabaram de ser enviadas
     throw error;
   }
 
-  // Apaga do storage a imagem antiga que foi substituída ou removida
-  if (produtoAtual.imagemUrl !== imagemUrl) {
-    await removerImagem(produtoAtual.imagemUrl);
-  }
+  // Só depois de gravar no banco apaga do storage as fotos que foram removidas do produto
+  await Promise.all(galeria.removidas.map((foto) => removerImagem(foto.url)));
 
   return NextResponse.json(produto);
 }

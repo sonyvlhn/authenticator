@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { enviarImagem, removerImagem, lerArquivo, ErroUpload } from "@/lib/storage";
+import { removerImagem, ErroUpload } from "@/lib/storage";
+import { prepararGaleria } from "@/lib/galeriaProduto";
 import { validarProduto } from "@/lib/validations";
 
 
@@ -14,7 +15,7 @@ import { validarProduto } from "@/lib/validations";
 export async function GET() {
    try {
         const produtos = await prisma.produtos.findMany({
-            include: { categoria: true},
+            include: { categoria: true, imagens: { orderBy: { ordem: 'asc' } } },
             orderBy: {nome: 'asc'}
         })
         return NextResponse.json(produtos)
@@ -40,18 +41,21 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Categoria não encontrada' }, { status: 400 })
     }
 
-    const imagem = lerArquivo(formData, 'imageFile')
-
-    // envia a imagem para o container de storage e guarda a URL pública gerada
-    const imagemUrl = imagem ? await enviarImagem(imagem, 'produtos') : null
+    // envia as fotos (até 5) para o container de storage e define a foto de destaque
+    const galeria = await prepararGaleria(formData)
 
     let produto
     try {
         produto = await prisma.produtos.create({
-            data: { nome, categoriaId, preco, descontoPorcentagem, descricao, imagemUrl }
-        }) // criando o produto no banco de dados
+            data: {
+                nome, categoriaId, preco, descontoPorcentagem, descricao,
+                imagemUrl: galeria.imagemUrl, // foto de destaque, usada no card
+                imagens: { create: galeria.fotos.map((foto, ordem) => ({ url: foto.url, ordem })) },
+            },
+            include: { imagens: { orderBy: { ordem: 'asc' } } },
+        }) // criando o produto e suas fotos no banco de dados
     } catch (error) {
-        await removerImagem(imagemUrl) // se o banco falhar, não deixa a imagem órfã no storage
+        await Promise.all(galeria.enviadas.map((url) => removerImagem(url))) // se o banco falhar, não deixa fotos órfãs no storage
         throw error
     }
 
