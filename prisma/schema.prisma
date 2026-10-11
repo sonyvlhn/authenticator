@@ -44,16 +44,29 @@ model Categoria {
 
 // Adicione a relação dentro de Produtos (substitua o campo categoria existente)
 model Produtos {
-  id                  String    @id @default(cuid())
+  id                  String          @id @default(cuid())
   nome                String
-  categoria           Categoria @relation(fields: [categoriaId], references: [id])
+  categoria           Categoria       @relation(fields: [categoriaId], references: [id])
   categoriaId         String
   descricao           String
   preco               Float
-  descontoPorcentagem Float     @default(0) // desconto em porcentagem (0 a 100). 0 = produto sem desconto
-  imagemUrl           String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  descontoPorcentagem Float           @default(0) // desconto em porcentagem (0 a 100). 0 = produto sem desconto
+  imagemUrl           String? // URL da foto de destaque (usada no card/listagem)
+  imagens             ProdutoImagem[] // todas as fotos do produto (até 5)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+// Fotos do produto armazenadas no storage (até 5 por produto)
+model ProdutoImagem {
+  id        String   @id @default(cuid())
+  url       String
+  ordem     Int      @default(0) // posição da foto na galeria
+  produto   Produtos @relation(fields: [produtoId], references: [id], onDelete: Cascade) // apagar o produto apaga as fotos
+  produtoId String
+  createdAt DateTime @default(now())
+
+  @@index([produtoId])
 }
 
 // Após a tabela criada, como acima, rode o seguinte comando no terminal: npx prisma migrate dev --name init
