@@ -1,8 +1,17 @@
 "use client"
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import type { UsuarioSessao } from '@/lib/sessao';
 
-export default function SideBar() {
+// Gera as iniciais do usuário para o avatar, exemplo: "Sony Anderson" vira "SA"
+function obterIniciais(nome: string): string {
+  const partes = nome.trim().split(/\s+/);
+  const primeira = partes[0]?.[0] ?? "";
+  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : "";
+  return (primeira + ultima).toUpperCase();
+}
+
+export default function SideBar({ usuario }: { usuario: UsuarioSessao }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState<boolean>(true);
@@ -96,16 +105,34 @@ export default function SideBar() {
       </div>
 
       <div className="mt-auto flex flex-col gap-2">
-        <button
-          onClick={handleLogout}
-          className={`flex items-center gap-3 py-2.5 rounded-lg bg-slate-100 text-slate-900 transition-all duration-300 hover:bg-red-600 hover:text-white font-semibold shadow-md ${isOpen ? 'px-4 justify-start' : 'justify-center'}`}
-          title="Sair"
-        >
-          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          {isOpen && <span className="transition-opacity duration-300">Sair</span>} { /* Significa que o span só será renderizado se o isOpen for true */}
-        </button>
+        {/* Card do usuário logado: com a sidebar aberta fica em linha (avatar + dados + sair), fechada fica empilhado (avatar em cima, sair embaixo) */}
+        <div className={`flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 p-2 transition-all duration-300 ${isOpen ? 'flex-row' : 'flex-col'}`}>
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-300 text-sm font-bold text-slate-900"
+            title={`${usuario.name} (${usuario.email})`}
+          >
+            {obterIniciais(usuario.name)}
+          </div>
+
+          {isOpen && (
+            <div className="min-w-0 flex-1 transition-opacity duration-300">
+              <p className="truncate text-sm font-semibold" title={usuario.name}>{usuario.name}</p>
+              <p className="truncate text-xs text-slate-400" title={usuario.email}>{usuario.email}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-slate-500">{usuario.tipoAcesso}</p>
+            </div>
+          )}
+
+          <button
+            onClick={handleLogout}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors duration-300 hover:bg-red-600 hover:text-white"
+            title="Sair"
+            aria-label="Sair"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
         {isOpen && <div className="text-center text-xs text-slate-500 transition-opacity duration-300">v1.0.0</div>} {/* Significa que a div só será renderizada se o isOpen for true */}
       </div>
     </div>

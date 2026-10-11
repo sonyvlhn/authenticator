@@ -16,7 +16,7 @@ export default async function Administration({
 
   return (
     <div className="flex flex-row bg-slate-100 font-sans">
-      <SideBar />
+      <SideBar usuario={usuario} />
       {children}
     </div>
   );
