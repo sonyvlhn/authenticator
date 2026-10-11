@@ -17,7 +17,8 @@ type Produto = {
   descricao: string;
   preco: number;
   descontoPorcentagem: number;
-  imagemUrl: string | null;
+  imagemUrl: string | null; // foto de destaque, exibida no card
+  imagens: { id: string; url: string }[];
 };
 
 function formatarPreco(valor: number): string {
@@ -199,6 +200,7 @@ export default function Produtos() {
                 preco: produtoSelecionado.preco,
                 descontoPorcentagem: produtoSelecionado.descontoPorcentagem,
                 imagemUrl: produtoSelecionado.imagemUrl,
+                imagens: produtoSelecionado.imagens,
               }
             : null
         }

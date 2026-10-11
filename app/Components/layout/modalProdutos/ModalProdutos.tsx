@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { MAX_FOTOS_PRODUTO } from "@/lib/validations";
 
 type Categoria = {
   id: string;
@@ -13,8 +14,20 @@ export type ProdutoEdicao = {
   descricao: string;
   preco: number;
   descontoPorcentagem?: number;
-  imagemUrl?: string | null;
+  imagemUrl?: string | null; // foto de destaque
+  imagens?: { id: string; url: string }[]; // fotos já salvas do produto
 };
+
+// Foto exibida na galeria do modal: já salva no storage (id) ou nova, ainda não enviada (arquivo)
+type Foto = {
+  chave: string;
+  url: string; // URL do storage ou URL temporária do navegador (preview)
+  id?: string;
+  arquivo?: File;
+};
+
+const TIPOS_ACEITOS = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const TAMANHO_MAXIMO = 5 * 1024 * 1024; // 5 MB, o mesmo limite da API
 
 export default function ModalProdutos({
   onClose,
@@ -26,9 +39,12 @@ export default function ModalProdutos({
   produto?: ProdutoEdicao | null;
 }) {
   const isEditing = !!produto;
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(
-    produto?.imagemUrl ?? null
+  const [fotos, setFotos] = useState<Foto[]>(
+    () => produto?.imagens?.map((imagem) => ({ chave: imagem.id, url: imagem.url, id: imagem.id })) ?? []
+  );
+  // foto de destaque: ao editar, a que já estava salva como destaque (ou a primeira)
+  const [destaque, setDestaque] = useState<string | null>(
+    () => produto?.imagens?.find((imagem) => imagem.url === produto.imagemUrl)?.id ?? produto?.imagens?.[0]?.id ?? null
   );
   const [temDesconto, setTemDesconto] = useState(
     (produto?.descontoPorcentagem ?? 0) > 0 // ao editar, já abre marcado se o produto tiver desconto
@@ -49,45 +65,69 @@ export default function ModalProdutos({
       .catch((e) => console.log(e));
   }, []);
 
+  // libera da memória as URLs temporárias de preview das fotos novas
+  const liberarPreviews = (lista: Foto[]) => {
+    lista.filter((foto) => foto.arquivo).forEach((foto) => URL.revokeObjectURL(foto.url));
+  };
+
   // handleClose é responsável por fechar o modal
   const handleClose = () => {
     setClosing(true); //inicia a animação de fechamento, setando o estado para true
     setTimeout(() => {
-      setSelectedImage(null);
-      setPreviewUrl(null);
+      liberarPreviews(fotos);
+      setFotos([]);
       setTemDesconto(false);
       onClose(); //fecha o modal
     }, 180); //o tempo é o mesmo que a animação de fechamento, então quando o tempo acabar, o modal já terá fechado
   };
 
-  // handleImageChange é responsável por receber a imagem do produto
+  // handleImageChange recebe as fotos escolhidas (até completar o limite de 5)
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
+    const selecionadas = Array.from(e.target.files ?? []);
+    e.target.value = ""; // permite escolher o mesmo arquivo de novo depois de removê-lo
+    if (selecionadas.length === 0) return;
+
+    const validas = selecionadas.filter((arquivo) => TIPOS_ACEITOS.includes(arquivo.type) && arquivo.size <= TAMANHO_MAXIMO);
+    const vagas = MAX_FOTOS_PRODUTO - fotos.length;
+    const adicionadas = validas.slice(0, vagas);
+
+    const avisos: string[] = [];
+    if (validas.length < selecionadas.length) avisos.push("Algumas fotos foram ignoradas: use PNG, JPG, WEBP ou GIF com até 5 MB.");
+    if (validas.length > vagas) avisos.push(`O produto pode ter no máximo ${MAX_FOTOS_PRODUTO} fotos.`);
+    setError(avisos.join(" "));
+
+    const novas: Foto[] = adicionadas.map((arquivo) => ({
+      chave: crypto.randomUUID(),
+      url: URL.createObjectURL(arquivo),
+      arquivo,
+    }));
+    setFotos((atuais) => [...atuais, ...novas]);
+    // se ainda não havia destaque, a primeira foto adicionada vira o destaque
+    if (!destaque && novas[0]) setDestaque(novas[0].chave);
   };
 
-  // handleRemoveImage é responsável por remover a imagem do produto
-  const handleRemoveImage = () => {
-    setSelectedImage(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setPreviewUrl(null);
+  // handleRemoveImage remove uma foto da galeria
+  const handleRemoveImage = (chave: string) => {
+    const restantes = fotos.filter((foto) => foto.chave !== chave);
+    liberarPreviews(fotos.filter((foto) => foto.chave === chave));
+    setFotos(restantes);
+    // se a foto removida era o destaque, a primeira restante assume
+    if (destaque === chave) setDestaque(restantes[0]?.chave ?? null);
   };
 
   async function handleSubmitNewProduto(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); // Impede o comportamento padrão de submit do form (reload/navegação), que abortaria o fetch antes da resposta chegar
     const formData = new FormData(e.currentTarget); // O FormData é uma classe nativa do javascript que permite criar objetos a partir de formulários.
-    // O input de arquivo some da tela quando o preview aparece, então a imagem escolhida é adicionada manualmente
-    formData.delete("imageFile");
-    if (selectedImage) {
-      formData.set("imageFile", selectedImage);
-    } else if (isEditing && !previewUrl) {
-      formData.set("removerImagem", "true"); // o usuário removeu a imagem que o produto já tinha
+
+    // Fotos: as novas vão como arquivos, as já salvas como lista de ids, e o destaque indica qual delas vai para o card
+    const novas = fotos.filter((foto) => foto.arquivo);
+    novas.forEach((foto) => formData.append("imagens", foto.arquivo!));
+    formData.set("imagensMantidas", JSON.stringify(fotos.filter((foto) => foto.id).map((foto) => foto.id)));
+    const fotoDestaque = fotos.find((foto) => foto.chave === destaque);
+    if (fotoDestaque) {
+      formData.set("destaque", fotoDestaque.id ? `existente:${fotoDestaque.id}` : `nova:${novas.indexOf(fotoDestaque)}`);
     }
+
     setError("");
     setIsSaving(true);
     try {
@@ -118,7 +158,7 @@ export default function ModalProdutos({
     >
       <form
         onSubmit={handleSubmitNewProduto}
-        className={`bg-white p-6 rounded-xl w-full max-w-md mx-4 flex flex-col gap-6 shadow-2xl ${closing ? "animate-modal-out" : "animate-modal-in"}`}
+        className={`bg-white p-6 rounded-xl w-full max-w-md mx-4 max-h-[90dvh] overflow-y-auto flex flex-col gap-6 shadow-2xl ${closing ? "animate-modal-out" : "animate-modal-in"}`}
       >
         <h2 className="text-xl font-semibold text-slate-900 text-center">
           {isEditing ? "Editar Produto" : "Crie seu Produto"}
@@ -130,75 +170,101 @@ export default function ModalProdutos({
         )}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2 col-span-2">
-            <span className="text-sm font-medium text-slate-700">
-              Imagem do Produto
-            </span>
-            {previewUrl ? (
-              <div className="relative h-32 w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className="h-full w-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 bg-black/70 hover:bg-black text-white p-1.5 rounded-full transition-colors duration-200"
-                  title="Remover imagem"
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium text-slate-700">
+                Fotos do Produto
+              </span>
+              <span className="text-xs text-slate-400">
+                {fotos.length}/{MAX_FOTOS_PRODUTO}
+              </span>
+            </div>
+            {/* Cada foto ocupa 1 fração e o quadro de upload ocupa as frações restantes das 5:
+                sem fotos ele usa a largura toda e vai diminuindo conforme as fotos são adicionadas */}
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns:
+                  fotos.length < MAX_FOTOS_PRODUTO
+                    ? `repeat(${fotos.length}, minmax(0, 1fr)) minmax(0, ${MAX_FOTOS_PRODUTO - fotos.length}fr)`
+                    : `repeat(${MAX_FOTOS_PRODUTO}, minmax(0, 1fr))`,
+              }}
+            >
+              {fotos.map((foto) => {
+                const ehDestaque = foto.chave === destaque;
+                return (
+                  <div
+                    key={foto.chave}
+                    className={`relative aspect-square rounded-lg overflow-hidden bg-slate-50 border-2 transition-colors duration-200 ${ehDestaque ? "border-amber-400" : "border-slate-200"}`}
+                  >
+                    <img src={foto.url} alt="Foto do produto" className="h-full w-full object-cover" />
+                    {/* Estrela: escolhe a foto de destaque, usada no card do produto */}
+                    <button
+                      type="button"
+                      onClick={() => setDestaque(foto.chave)}
+                      title={ehDestaque ? "Foto de destaque" : "Usar como destaque"}
+                      aria-label={ehDestaque ? "Foto de destaque" : "Usar como destaque"}
+                      aria-pressed={ehDestaque}
+                      className={`absolute top-1 left-1 p-1 rounded-full transition-colors duration-200 ${ehDestaque ? "bg-amber-400 text-white" : "bg-black/50 text-white hover:bg-black/70"}`}
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill={ehDestaque ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinejoin="round" d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(foto.chave)}
+                      title="Remover foto"
+                      aria-label="Remover foto"
+                      className="absolute top-1 right-1 bg-black/50 hover:bg-black/80 text-white p-1 rounded-full transition-colors duration-200"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    {ehDestaque && (
+                      <span className="absolute bottom-0 inset-x-0 bg-amber-400/90 text-white text-[10px] font-semibold text-center py-0.5">
+                        Destaque
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {fotos.length < MAX_FOTOS_PRODUTO && (
+                <label
+                  htmlFor="imageInput"
+                  // sem fotos tem altura própria; com fotos acompanha a altura das miniaturas
+                  className={`${fotos.length === 0 ? "h-28" : "h-full"} flex flex-col items-center justify-center text-center px-2 border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100/50 transition-all duration-200 text-slate-400`}
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    ></path>
+                  <svg className={fotos.length === 0 ? "w-8 h-8" : "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                   </svg>
-                </button>
-              </div>
-            ) : (
-              <label
-                htmlFor="imageInput"
-                className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/50 transition-all duration-200"
-              >
-                <div className="flex flex-col items-center justify-center pt-4 pb-4 px-3 text-center">
-                  <svg
-                    className="w-8 h-8 mb-2 text-slate-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    ></path>
-                  </svg>
-                  <p className="text-sm font-medium text-slate-700">
-                    Clique para enviar
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    PNG, JPG ou WEBP
-                  </p>
-                </div>
-                <input
-                  type="file"
-                  id="imageInput"
-                  name="imageFile"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
-            )}
+                  {/* com mais espaço livre, o texto fica mais descritivo */}
+                  {fotos.length === 0 ? (
+                    <>
+                      <span className="text-sm font-medium text-slate-700 mt-1">Clique para enviar fotos</span>
+                      <span className="text-xs mt-0.5">Até {MAX_FOTOS_PRODUTO} fotos</span>
+                    </>
+                  ) : (
+                    // com 4 fotos o quadro fica estreito: no celular mostra só o ícone
+                    <span className={`text-[11px] font-medium mt-1 ${fotos.length >= 4 ? "hidden sm:inline" : ""}`}>
+                      {fotos.length <= 2 ? "Adicionar fotos" : "Adicionar"}
+                    </span>
+                  )}
+                  {/* sem "name": as fotos são adicionadas ao FormData manualmente no envio */}
+                  <input
+                    type="file"
+                    id="imageInput"
+                    multiple
+                    accept={TIPOS_ACEITOS.join(",")}
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-xs text-slate-400">
+              Até {MAX_FOTOS_PRODUTO} fotos (PNG, JPG, WEBP ou GIF, máx. 5 MB cada). Toque na ★ para escolher a foto de destaque do card.
+            </p>
           </div>
           <div className="flex flex-col gap-1">
             <label
