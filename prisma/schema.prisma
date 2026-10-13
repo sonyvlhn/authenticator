@@ -51,6 +51,7 @@ model Produtos {
   descricao           String
   preco               Float
   descontoPorcentagem Float           @default(0) // desconto em porcentagem (0 a 100). 0 = produto sem desconto
+  emDestaque          Boolean         @default(false) // indica se o produto aparece como destaque na loja
   imagemUrl           String? // URL da foto de destaque (usada no card/listagem)
   imagens             ProdutoImagem[] // todas as fotos do produto (até 5)
   createdAt           DateTime        @default(now())
