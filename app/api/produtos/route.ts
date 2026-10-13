@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     if (!resultado.success) {
         return NextResponse.json({ error: resultado.error.issues[0].message }, { status: 400 })
     }
-    const { nome, categoriaId, descricao, preco, descontoPorcentagem } = resultado.data
+    const { nome, categoriaId, descricao, preco, descontoPorcentagem, emDestaque } = resultado.data
 
     const categoria = await prisma.categoria.findUnique({ where: { id: categoriaId } })
     if (!categoria) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     try {
         produto = await prisma.produtos.create({
             data: {
-                nome, categoriaId, preco, descontoPorcentagem, descricao,
+                nome, categoriaId, preco, descontoPorcentagem, descricao, emDestaque,
                 imagemUrl: galeria.imagemUrl, // foto de destaque, usada no card
                 imagens: { create: galeria.fotos.map((foto, ordem) => ({ url: foto.url, ordem })) },
             },

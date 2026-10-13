@@ -12,7 +12,7 @@ async function updateProduto(request: Request, id: string) {
   if (!resultado.success) {
     return NextResponse.json({ error: resultado.error.issues[0].message }, { status: 400 });
   }
-  const { nome, categoriaId, descricao, preco, descontoPorcentagem } = resultado.data;
+  const { nome, categoriaId, descricao, preco, descontoPorcentagem, emDestaque } = resultado.data;
 
   const categoria = await prisma.categoria.findUnique({ where: { id: categoriaId } });
   if (!categoria) {
@@ -33,7 +33,7 @@ async function updateProduto(request: Request, id: string) {
       ...salvarGaleria(id, galeria),
       prisma.produtos.update({
         where: { id },
-        data: { nome, categoriaId, descricao, preco, descontoPorcentagem, imagemUrl: galeria.imagemUrl },
+        data: { nome, categoriaId, descricao, preco, descontoPorcentagem, emDestaque, imagemUrl: galeria.imagemUrl },
         include: { categoria: true, imagens: { orderBy: { ordem: "asc" } } },
       }),
     ]);

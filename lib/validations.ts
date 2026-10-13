@@ -28,6 +28,7 @@ export const produtoSchema = z.object({ // valida os dados do formulário de pro
   preco: z.preprocess(vazioParaUndefined, z.coerce.number({ message: 'Informe um preço válido.' }).positive({ message: 'O preço deve ser maior que zero.' })),
   descontoPorcentagem: z.preprocess((valor) => vazioParaUndefined(valor) ?? 0, // sem desconto informado = 0%
     z.coerce.number({ message: 'Informe um desconto válido.' }).refine(porcentagemValida, { message: 'O desconto deve ser uma porcentagem entre 0 e 100.' })),
+  emDestaque: z.boolean().default(false),
 });
 
 export type produtoInput = z.infer<typeof produtoSchema>
@@ -40,6 +41,7 @@ export function validarProduto(formData: FormData) {
     descricao: formData.get('descricao') ?? undefined,
     preco: formData.get('preco'),
     descontoPorcentagem: formData.get('descontoPorcentagem'),
+    emDestaque: formData.get('emDestaque') === 'on', // checkbox marcado envia "on"; desmarcado não envia nada
   });
 }
 
