@@ -346,6 +346,29 @@ export default function ModalProdutos({
               className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
             />
           </div>
+          {/* Fica na coluna ao lado do Preço, na mesma linha */}
+          {temDesconto && (
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="porcentagem"
+                className="text-sm font-medium text-slate-700"
+              >
+                Desconto (%)
+              </label>
+              <input
+                type="number"
+                id="porcentagem"
+                name="descontoPorcentagem"
+                min={0}
+                max={100}
+                step="0.01"
+                required
+                defaultValue={produto?.descontoPorcentagem || undefined}
+                placeholder="%"
+                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
+              />
+            </div>
+          )}
           <div className="col-span-2 grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium text-slate-700">
@@ -379,28 +402,6 @@ export default function ModalProdutos({
                 </span>
               </div>
             </div>
-            {temDesconto && (
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="porcentagem"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Porcentagem do desconto
-                </label>
-                <input
-                  type="number"
-                  id="porcentagem"
-                  name="descontoPorcentagem"
-                  min={0}
-                  max={100}
-                  step="0.01"
-                  required
-                  defaultValue={produto?.descontoPorcentagem || undefined}
-                  placeholder="%"
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black"
-                />
-              </div>
-            )}
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-2">
