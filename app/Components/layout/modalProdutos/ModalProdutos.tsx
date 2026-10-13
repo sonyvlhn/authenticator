@@ -14,6 +14,7 @@ export type ProdutoEdicao = {
   descricao: string;
   preco: number;
   descontoPorcentagem?: number;
+  emDestaque?: boolean;
   imagemUrl?: string | null; // foto de destaque
   imagens?: { id: string; url: string }[]; // fotos já salvas do produto
 };
@@ -402,6 +403,25 @@ export default function ModalProdutos({
                 </span>
               </div>
             </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-slate-700">
+                O produto é destaque?
+              </p>
+              <div className="flex gap-2">
+                {/* "emDestaque" e não "destaque": esse nome já é usado pela foto de destaque da galeria */}
+                <input
+                  type="checkbox"
+                  id="emDestaque"
+                  name="emDestaque"
+                  defaultChecked={produto?.emDestaque}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 text-black cursor-pointer"
+                />
+                <span className="text-gray-400 text-xs">
+                  Marque se o produto for destaque
+                </span>
+              </div>
+            </div>
+            
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-2">

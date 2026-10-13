@@ -17,6 +17,7 @@ type Produto = {
   descricao: string;
   preco: number;
   descontoPorcentagem: number;
+  emDestaque: boolean;
   imagemUrl: string | null; // foto de destaque, exibida no card
   imagens: { id: string; url: string }[];
 };
@@ -199,6 +200,7 @@ export default function Produtos() {
                 descricao: produtoSelecionado.descricao,
                 preco: produtoSelecionado.preco,
                 descontoPorcentagem: produtoSelecionado.descontoPorcentagem,
+                emDestaque: produtoSelecionado.emDestaque,
                 imagemUrl: produtoSelecionado.imagemUrl,
                 imagens: produtoSelecionado.imagens,
               }
